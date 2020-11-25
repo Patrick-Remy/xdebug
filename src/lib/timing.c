@@ -135,37 +135,10 @@ void xdebug_nanotime_init(void)
 
 uint64_t xdebug_get_nanotime(void)
 {
-	uint64_t nanotime;
-	xdebug_nanotime_context *context;
-
-	context = &XG_BASE(nanotime_context);
-
-#if PHP_WIN32 | __APPLE__ | CLOCK_MONOTONIC
-	/* Relative timing */
-	if (context->use_rel_time) {
-		nanotime = xdebug_get_nanotime_rel(context);
-
-		if (nanotime < context->last_rel + NANOTIME_MIN_STEP) {
-			context->last_rel += NANOTIME_MIN_STEP;
-			nanotime = context->last_rel;
-		}
-		context->last_rel = nanotime;
-		nanotime = context->start_abs + (nanotime - context->start_rel);
-
-		return nanotime;
-	}
-#endif
-
-	/* Absolute timing */
-	nanotime = xdebug_get_nanotime_abs(context);
-
-	if (nanotime < context->last_abs + NANOTIME_MIN_STEP) {
-		context->last_abs += NANOTIME_MIN_STEP;
-		nanotime = context->last_abs;
-	}
-	context->last_abs = nanotime;
-
-	return nanotime;
+	// Improve performance on docker-for-mac by prevent using gettimeofday, as
+	// stated at https://joshbutts.com/posts/patching-xdebug-docker-for-mac/
+	// See https://github.com/docker/for-mac/issues/3455
+	return 0;
 }
 
 char* xdebug_nanotime_to_chars(uint64_t nanotime, unsigned char precision)
