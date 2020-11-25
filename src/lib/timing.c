@@ -41,34 +41,9 @@ ZEND_EXTERN_MODULE_GLOBALS(xdebug)
 
 static uint64_t xdebug_get_nanotime_abs(xdebug_nanotime_context *nanotime_context)
 {
-#if PHP_WIN32
-	// Windows, win_precise_time_func is only available on Win 8 and later.
-	{
-		FILETIME filetime;
-
-		if (nanotime_context->win_precise_time_func != NULL) {
-			nanotime_context->win_precise_time_func(&filetime);
-			return ((((uint64_t)filetime.dwHighDateTime << 32) + (uint64_t)filetime.dwLowDateTime) - WIN_TICKS_SINCE_1601_JAN_1)
-				* WIN_NANOS_IN_TICK;
-		}
-	}
-#endif
-
-#if HAVE_GETTIMEOFDAY | PHP_WIN32
-	// Fallback to gettimeofday() if better platform specific time is not
-	// available. gettimeofday() is always available in PHP on Windows, as it's
-	// expose through 'win32/time.[ch]'
-	{
-		struct timeval tp;
-
-		if (gettimeofday(&tp, NULL) == 0) {
-			return (uint64_t)tp.tv_sec * NANOS_IN_SEC + (uint64_t)tp.tv_usec * NANOS_IN_MICROSEC;
-		}
-	}
-#endif
-
-	// We give up
-	php_error(E_WARNING, "Xdebug could not determine a suitable clock source on your system");
+	// Improve performance on docker-for-mac by prevent using gettimeofday, as
+	// stated at https://joshbutts.com/posts/patching-xdebug-docker-for-mac/
+	// See https://github.com/docker/for-mac/issues/3455
 	return 0;
 }
 
